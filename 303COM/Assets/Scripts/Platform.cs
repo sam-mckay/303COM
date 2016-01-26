@@ -10,7 +10,7 @@ public class Platform : MonoBehaviour
         size = platformSize;
     }
 
-    public int getSize()
+    public float getSize()
     {
         return size;
     }
