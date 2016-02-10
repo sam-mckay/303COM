@@ -34,6 +34,11 @@ namespace UnityStandardAssets._2D
             h = CrossPlatformInputManager.GetAxis("Horizontal");
             // Pass all parameters to the character control script.
             m_Character.Move(h, crouch, m_Jump);
+            
+            if(transform.position.x > 1 && h >0)
+            {
+                this.transform.position = new Vector3(1f, transform.position.y, transform.position.z);
+            }
             m_Jump = false;
         }
     }
