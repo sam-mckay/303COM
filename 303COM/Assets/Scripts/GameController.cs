@@ -14,8 +14,7 @@ public class GameController : MonoBehaviour
     public GameObject largePlatform;
     public GameObject player;
     public GameObject scoreText;
-
-    //Queue<GameObject> platforms;
+    
     LinkedList<GameObject> platforms;
     LinkedList<GameObject> overheadPlatforms;
 
@@ -25,6 +24,21 @@ public class GameController : MonoBehaviour
     float platformTime;
     float overheadPlatformTime;
     int score;
+
+    //PEM Player Experience Model
+    float gameTime;
+    float distanceToStart;
+    float previousDistance;
+    UnityStandardAssets._2D.Platformer2DUserControl playerScript;
+    float currentAverageSpeed;
+    static float AVERAGE_SPEED = 30;
+
+    //PCG Procedural Content Generation
+    float platformGap; //space between platforms
+    float platformLength; //length of PCG platform
+    public bool isPCG_On; //PCG mode enabled or disabled 
+    public int difficultyLevel; //difficulty level for when PCG disabled //Levels: 0 = easy, 1 = normal, 2 = hard
+
     // Use this for initialization
     void Awake ()
     {
@@ -39,15 +53,23 @@ public class GameController : MonoBehaviour
         //add starting platform
         platforms.AddLast(startPlatform);
         //add a few platforms to act as a buffer
-        createRandomPlatform();
-        createRandomPlatform();
-        createRandomPlatform();
-
+        createDifficultyPlatform();
+        createDifficultyPlatform();
+        createDifficultyPlatform();
+        //PEM
+        gameTime = 0;
+        playerScript = player.GetComponent<UnityStandardAssets._2D.Platformer2DUserControl>();
+        currentAverageSpeed = 0;
+        distanceToStart = 0;
+        previousDistance = 0;
     }
 	
 	// Update is called once per frame
 	void Update ()
     {
+        updateTimer();
+        updateDistanceTravelled();
+
         platformTime += Time.deltaTime;
         overheadPlatformTime += Time.deltaTime;        
         //move platforms
@@ -75,19 +97,100 @@ public class GameController : MonoBehaviour
                 currentPlatform = currentPlatform.Next;
             }
         }
-        //generate platforms
+        //generate platforms 
         //normal
-        if (platformTime > gameSpeed && platforms.Count < 5)
+        if (platforms.Count < 5)
         {
-            createRandomPlatform();
+                //if not PCG mode
+            if (!isPCG_On)
+            {
+                createDifficultyPlatform();
+            }
+            else
+            {
+                CreatePCGPlatform();
+            }
             platformTime = 0.0f;
         }
-        //overhead
+        //overhead //REMOVED TEMPORILY UNTIL CONSTRAINTS ADDED
         if (overheadPlatformTime > gameSpeed && overheadPlatforms.Count < 3)
         {
-            createRandomPlatform(true);
-            overheadPlatformTime = 0.0f;
+            //createDifficultyPlatform(true);
+            //overheadPlatformTime = 0.0f;
         }
+
+
+    }
+
+    void updateTimer()
+    {
+        gameTime += Time.deltaTime;
+        //Debug.Log("TIME: " + gameTime);
+    }
+
+    void updateDistanceTravelled()
+    {        
+        if(playerScript.h > 0)
+        {
+            distanceToStart += playerScript.h;
+        }
+        //Debug.Log("DISTANCE: " + distanceToStart);
+        if (distanceToStart - previousDistance > 100)
+        {
+            previousDistance = distanceToStart;
+            updateAverageSpeed();
+        }
+        
+    }
+
+    void updateAverageSpeed()
+    {
+        float newSpeed = distanceToStart / gameTime;
+        if (currentAverageSpeed != 0)
+        {
+            currentAverageSpeed = (currentAverageSpeed + newSpeed) / 2;
+        }
+        else
+        {
+            currentAverageSpeed = newSpeed;
+        }
+        Debug.Log("AVERAGE SPEED: " + currentAverageSpeed);
+    }
+
+    void CreatePCGPlatform()
+    {
+        Debug.Log("PCG_LOOP");
+        if (currentAverageSpeed != 0)
+        {
+            //get game average speed
+            //get player average speed
+            //player/game
+            float platformScaler = currentAverageSpeed / AVERAGE_SPEED;
+            //create new platform
+            createNewPlatform((int)(8 * (platformScaler-1)), mediumPlatform);
+            //scale platform
+            GameObject newPlatform = platforms.Last.Value;
+            Debug.Log("PLATFORM TEST: SIZE: " + newPlatform.GetComponent<Platform>().getSize());
+            if (platformScaler >= 1)
+            {
+                if (newPlatform.transform.localScale.x > 0.5)
+                {
+                    newPlatform.transform.localScale -= new Vector3(platformScaler-1, 0, 0);
+                }
+            }
+            else
+            {
+                if (newPlatform.transform.localScale.x < 1.5)
+                {
+                    newPlatform.transform.localScale += new Vector3(platformScaler-1, 0, 0);
+                }
+            }
+        }
+        else
+        {
+            createDifficultyPlatform();
+        }
+        
     }
 
     public GameObject getCurrentPlatform()
@@ -110,29 +213,31 @@ public class GameController : MonoBehaviour
         }
         else
         {
+            Debug.Log("PLATFORM PRE TEST: INITIAL SIZE: " +size);
             platforms.AddLast(newPlatform);
+            Debug.Log("PLATFORM PRE TEST: SIZE: " + newPlatform.GetComponent<Platform>().getSize());
         }
     }
 
-    //random platform generation
-    void createRandomPlatform(bool isOverhead = false)
+    //random platform generation // generates based on difficulty level
+    void createDifficultyPlatform(bool isOverhead = false)
     {
         int platformNumber = Random.Range(1, 4);
-        Debug.Log("PLATFORM NUMBER: " + platformNumber);
+        Debug.Log("PLATFORM NUMBER: " + difficultyLevel);
         GameObject newPlatform;
-        switch (platformNumber)
+        switch (difficultyLevel)
         {
-            case 1:
-                platformNumber = 6;
-                newPlatform = smallPlatform;
+            case 0:
+                platformNumber = 24;
+                newPlatform = largePlatform;
                 break;
-            case 2:
+            case 1:
                 platformNumber = 8;
                 newPlatform = mediumPlatform;
                 break;
-            case 3:
-                platformNumber = 24;
-                newPlatform = largePlatform;
+            case 2:
+                platformNumber = 6;
+                newPlatform = smallPlatform; 
                 break;
             default:
                 Debug.Log("ERROR");
