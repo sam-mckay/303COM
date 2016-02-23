@@ -31,7 +31,7 @@ public class GameController : MonoBehaviour
     float previousDistance;
     UnityStandardAssets._2D.Platformer2DUserControl playerScript;
     float currentAverageSpeed;
-    static float AVERAGE_SPEED = 30;
+    static float AVERAGE_SPEED = 40;
 
     //PCG Procedural Content Generation
     float platformGap; //space between platforms
@@ -135,7 +135,7 @@ public class GameController : MonoBehaviour
             distanceToStart += playerScript.h;
         }
         //Debug.Log("DISTANCE: " + distanceToStart);
-        if (distanceToStart - previousDistance > 100)
+        if (distanceToStart - previousDistance > 25)
         {
             previousDistance = distanceToStart;
             updateAverageSpeed();
@@ -165,24 +165,58 @@ public class GameController : MonoBehaviour
             //get game average speed
             //get player average speed
             //player/game
+            //float platformScaler = AVERAGE_SPEED / currentAverageSpeed;//NEEDS FLIPPING? 
+
+            // PROBABLY NOT WORKING AT ALL, DRY RUN!!
             float platformScaler = currentAverageSpeed / AVERAGE_SPEED;
-            //create new platform
-            createNewPlatform((int)(8 * (platformScaler-1)), mediumPlatform);
-            //scale platform
-            GameObject newPlatform = platforms.Last.Value;
-            Debug.Log("PLATFORM TEST: SIZE: " + newPlatform.GetComponent<Platform>().getSize());
-            if (platformScaler >= 1)
+            if (platformScaler >1)
             {
-                if (newPlatform.transform.localScale.x > 0.5)
-                {
-                    newPlatform.transform.localScale -= new Vector3(platformScaler-1, 0, 0);
-                }
+                platformScaler -= 1;
             }
             else
             {
-                if (newPlatform.transform.localScale.x < 1.5)
+                platformScaler += 1;
+            }
+            //create new platform
+            //NOW WORKING... TOO WELL.. NEEDS CONSTRAINING...
+            if(platformScaler > 1.5f)
+            {
+                platformScaler = 1.5f;
+            }
+            else if(platformScaler < 0.5f)
+            {
+                platformScaler = 0.5f;
+            }
+            createNewPlatform((int)(8 * platformScaler), mediumPlatform);
+                      
+            
+            
+            //scale platform
+            GameObject newPlatform = platforms.Last.Value;
+            //make bigger platforms
+            if (platformScaler >= 1)
+            {
+                //cap platform size at 1.5f
+                if (newPlatform.transform.localScale.x +(platformScaler - 1) < 1.5)
                 {
-                    newPlatform.transform.localScale += new Vector3(platformScaler-1, 0, 0);
+                    newPlatform.transform.localScale += new Vector3(0.5f, 0, 0);
+                }
+                else
+                {
+                    newPlatform.transform.localScale += new Vector3(platformScaler - 1, 0, 0);
+                }
+            }
+            //make smaller platforms
+            else
+            {
+                //cap platform size at 0.5f
+                if (newPlatform.transform.localScale.x - (platformScaler - 1) > 0.5)
+                {
+                    newPlatform.transform.localScale -= new Vector3(0.5f, 0, 0);
+                }
+                else
+                {
+                    newPlatform.transform.localScale -= new Vector3(platformScaler - 1, 0, 0);
                 }
             }
         }
@@ -213,9 +247,9 @@ public class GameController : MonoBehaviour
         }
         else
         {
-            Debug.Log("PLATFORM PRE TEST: INITIAL SIZE: " +size);
+            //Debug.Log("PLATFORM PRE TEST: INITIAL SIZE: " +size);
             platforms.AddLast(newPlatform);
-            Debug.Log("PLATFORM PRE TEST: SIZE: " + newPlatform.GetComponent<Platform>().getSize());
+            //Debug.Log("PLATFORM PRE TEST: SIZE: " + newPlatform.GetComponent<Platform>().getSize());
         }
     }
 
@@ -223,7 +257,7 @@ public class GameController : MonoBehaviour
     void createDifficultyPlatform(bool isOverhead = false)
     {
         int platformNumber = Random.Range(1, 4);
-        Debug.Log("PLATFORM NUMBER: " + difficultyLevel);
+        //Debug.Log("PLATFORM NUMBER: " + difficultyLevel);
         GameObject newPlatform;
         switch (difficultyLevel)
         {
