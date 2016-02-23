@@ -3,7 +3,7 @@ using System.Collections;
 
 public class Platform : MonoBehaviour
 {
-    int size;
+    public int size;
     
     public void setSize(int platformSize)
     {

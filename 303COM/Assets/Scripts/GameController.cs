@@ -175,7 +175,7 @@ public class GameController : MonoBehaviour
             }
             else
             {
-                platformScaler += 1;
+                platformScaler = 1+(1-platformScaler);
             }
             //create new platform
             //NOW WORKING... TOO WELL.. NEEDS CONSTRAINING...
@@ -187,17 +187,39 @@ public class GameController : MonoBehaviour
             {
                 platformScaler = 0.5f;
             }
-            createNewPlatform((int)(8 * platformScaler), mediumPlatform);
-                      
             
-            
+            if(platformScaler < 1)
+            {
+                //cap platform size at 4
+                if(8*(1-platformScaler)<4)
+                {
+                    createNewPlatform(4, mediumPlatform);
+                }
+                else
+                {
+                    createNewPlatform((int)(8 *(1- platformScaler)), mediumPlatform);
+                }
+            }
+            else
+            {
+                //cap platform size at 12
+                if(8*platformScaler>12)
+                {
+                    createNewPlatform(12, mediumPlatform);
+                }
+                else
+                {
+                    createNewPlatform((int)(8 * platformScaler), mediumPlatform);
+                }
+            }
+             
             //scale platform
             GameObject newPlatform = platforms.Last.Value;
             //make bigger platforms
             if (platformScaler >= 1)
             {
                 //cap platform size at 1.5f
-                if (newPlatform.transform.localScale.x +(platformScaler - 1) < 1.5)
+                if (newPlatform.transform.localScale.x +(platformScaler - 1) > 1.5f)
                 {
                     newPlatform.transform.localScale += new Vector3(0.5f, 0, 0);
                 }
@@ -210,13 +232,13 @@ public class GameController : MonoBehaviour
             else
             {
                 //cap platform size at 0.5f
-                if (newPlatform.transform.localScale.x - (platformScaler - 1) > 0.5)
+                if (newPlatform.transform.localScale.x - platformScaler < 0.5f)
                 {
                     newPlatform.transform.localScale -= new Vector3(0.5f, 0, 0);
                 }
                 else
                 {
-                    newPlatform.transform.localScale -= new Vector3(platformScaler - 1, 0, 0);
+                    newPlatform.transform.localScale -= new Vector3(platformScaler, 0, 0);
                 }
             }
         }
