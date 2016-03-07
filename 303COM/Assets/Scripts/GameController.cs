@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ public class GameController : MonoBehaviour
     public GameObject largePlatform;
     public GameObject player;
     public GameObject scoreText;
+    public GameObject deathScene;
     
     LinkedList<GameObject> platforms;
     LinkedList<GameObject> overheadPlatforms;
@@ -68,9 +70,10 @@ public class GameController : MonoBehaviour
         //get difficulty level if PCG mode is off
         if (!isPCG_On)
         {
-            difficultyLevel = PlayerPrefs.GetInt("DifficultyLevel");
-            gameSpeed = 0.01f;
+            difficultyLevel = PlayerPrefs.GetInt(SaveManager.difficultyLevel);
         }
+        gameSpeed = 0.01f;
+        deathScene.SetActive(false);
     }
 	
 	// Update is called once per frame
@@ -85,7 +88,7 @@ public class GameController : MonoBehaviour
         LinkedListNode<GameObject> currentPlatform = platforms.First;
             //calc distance to move
         float distance = UnityStandardAssets.CrossPlatformInput.CrossPlatformInputManager.GetAxis("Horizontal");
-        offset = new Vector3((distance/4)+ gameSpeed, 0f, 0f);
+        offset = new Vector3((distance/6)+ gameSpeed, 0f, 0f);
         //normal
         for (int i = 0; i < platforms.Count; i++) 
         {
@@ -194,18 +197,25 @@ public class GameController : MonoBehaviour
                 platformScaler = 1+(1-platformScaler);
             }
             //create new platform
+                //cap platform scale
             if(platformScaler > 1.5f)
             {
+                platformGap = 7.0f;
                 platformScaler = 1.5f;
             }
             else if(platformScaler < 0.5f)
             {
+                platformGap = 2.0f;
                 platformScaler = 0.5f;
             }
+            else
+            {
+                platformGap = 5.0f;
+            }
+            
             
             if(platformScaler < 1)
             {
-                platformGap = 2.0f;
                 //cap platform size at 4
                 if(8*(1-platformScaler)<4)
                 {
@@ -218,7 +228,6 @@ public class GameController : MonoBehaviour
             }
             else
             {
-                platformGap = 7.0f;
                 //cap platform size at 12
                 if(8*platformScaler>12)
                 {
@@ -335,7 +344,7 @@ public class GameController : MonoBehaviour
     //platform deletion
     void isPlatformVisible(LinkedListNode<GameObject> currentPlatform, float sizeOffset, bool isOverhead = false)
     {
-        if(currentPlatform.Value.transform.position.x < 0 - (platformSize*sizeOffset))
+        if(currentPlatform.Value.transform.position.x < 0 - (platformSize*sizeOffset) -5)
         {
             if (isOverhead)
             {
@@ -352,5 +361,38 @@ public class GameController : MonoBehaviour
             scoreText.GetComponent<Text>().text = ""+score;
             Debug.Log("Destroyed");
         }
+    }
+
+    public void GameOver()
+    {
+        Time.timeScale = 0;
+        deathScene.SetActive(true);
+        if(isPCG_On)
+        {
+            PlayerPrefs.SetInt(SaveManager.isPCGPlayed, 1);
+        }
+        else
+        {
+            PlayerPrefs.SetInt(SaveManager.isManualPlayed, 1);
+        }
+    }
+
+    public void Retry()
+    {
+        Time.timeScale = 1;
+        if (isPCG_On)
+        {
+            SceneManager.LoadScene(2);
+        }
+        else
+        {
+            SceneManager.LoadScene(1);
+        }
+    }
+
+    public void Menu()
+    {
+        Time.timeScale = 1;
+        SceneManager.LoadScene(0);
     }
 }
