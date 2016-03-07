@@ -22,6 +22,7 @@ public class GameController : MonoBehaviour
     bool isStartPlatform = true;
     Vector3 offset;
     float platformTime;
+    float speedTimer;
     float overheadPlatformTime;
     int score;
 
@@ -32,7 +33,7 @@ public class GameController : MonoBehaviour
     UnityStandardAssets._2D.Platformer2DUserControl playerScript;
     float currentAverageSpeed;
     static float AVERAGE_SPEED = 40;
-
+    
     //PCG Procedural Content Generation
     float platformGap; //space between platforms
     float platformLength; //length of PCG platform
@@ -46,7 +47,7 @@ public class GameController : MonoBehaviour
         platforms = new LinkedList<GameObject>();
         overheadPlatforms = new LinkedList<GameObject>();
         platformTime = 2.0f;
-        
+        speedTimer = 0.0f;
         score = 0;
         startPlatform.GetComponent<Platform>().setSize(8);
         Debug.Log("SIZE SET: "+ startPlatform.GetComponent<Platform>().getSize());
@@ -62,6 +63,14 @@ public class GameController : MonoBehaviour
         currentAverageSpeed = 0;
         distanceToStart = 0;
         previousDistance = 0;
+        platformGap = 5;
+
+        //get difficulty level if PCG mode is off
+        if (!isPCG_On)
+        {
+            difficultyLevel = PlayerPrefs.GetInt("DifficultyLevel");
+            gameSpeed = 0.01f;
+        }
     }
 	
 	// Update is called once per frame
@@ -76,7 +85,7 @@ public class GameController : MonoBehaviour
         LinkedListNode<GameObject> currentPlatform = platforms.First;
             //calc distance to move
         float distance = UnityStandardAssets.CrossPlatformInput.CrossPlatformInputManager.GetAxis("Horizontal");
-        offset = new Vector3((distance/4)+0.01f, 0f, 0f);
+        offset = new Vector3((distance/4)+ gameSpeed, 0f, 0f);
         //normal
         for (int i = 0; i < platforms.Count; i++) 
         {
@@ -125,6 +134,13 @@ public class GameController : MonoBehaviour
     void updateTimer()
     {
         gameTime += Time.deltaTime;
+        speedTimer += Time.deltaTime;
+
+        if (speedTimer > 15.0f)
+        {
+            gameSpeed += 0.05f;
+            speedTimer = 0.0f;
+        }
         //Debug.Log("TIME: " + gameTime);
     }
 
@@ -167,7 +183,7 @@ public class GameController : MonoBehaviour
             //player/game
             //float platformScaler = AVERAGE_SPEED / currentAverageSpeed;//NEEDS FLIPPING? 
 
-            // PROBABLY NOT WORKING AT ALL, DRY RUN!!
+            
             float platformScaler = currentAverageSpeed / AVERAGE_SPEED;
             if (platformScaler >1)
             {
@@ -178,7 +194,6 @@ public class GameController : MonoBehaviour
                 platformScaler = 1+(1-platformScaler);
             }
             //create new platform
-            //NOW WORKING... TOO WELL.. NEEDS CONSTRAINING...
             if(platformScaler > 1.5f)
             {
                 platformScaler = 1.5f;
@@ -190,6 +205,7 @@ public class GameController : MonoBehaviour
             
             if(platformScaler < 1)
             {
+                platformGap = 2.0f;
                 //cap platform size at 4
                 if(8*(1-platformScaler)<4)
                 {
@@ -202,6 +218,7 @@ public class GameController : MonoBehaviour
             }
             else
             {
+                platformGap = 7.0f;
                 //cap platform size at 12
                 if(8*platformScaler>12)
                 {
@@ -259,7 +276,7 @@ public class GameController : MonoBehaviour
     {
         Platform lastPlatform = platforms.Last.Value.GetComponent<Platform>();
         float lastPosX = lastPlatform.transform.position.x + (lastPlatform.getSize()*platformSize);
-        Vector3 newPosition = new Vector3(lastPosX-5.0f+(overhead*size),-5+overhead,0);
+        Vector3 newPosition = new Vector3(lastPosX-platformGap+(overhead*size),-5+overhead,0);
         GameObject newPlatform = (GameObject) Instantiate(platformType, newPosition, Quaternion.identity);
         newPlatform.GetComponent<Platform>().setSize(size);
         if (overhead > 0)
@@ -284,16 +301,19 @@ public class GameController : MonoBehaviour
         switch (difficultyLevel)
         {
             case 0:
-                platformNumber = 24;
+                platformNumber = 8;
                 newPlatform = largePlatform;
+                platformGap = 5.0f;
                 break;
             case 1:
-                platformNumber = 8;
+                platformNumber = 7;
                 newPlatform = mediumPlatform;
+                platformGap = 5.0f;
                 break;
             case 2:
                 platformNumber = 6;
-                newPlatform = smallPlatform; 
+                newPlatform = smallPlatform;
+                platformGap = 2.0f;
                 break;
             default:
                 Debug.Log("ERROR");
