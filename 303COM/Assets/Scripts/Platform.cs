@@ -4,6 +4,7 @@ using System.Collections;
 public class Platform : MonoBehaviour
 {
     public int size;
+    public int points;
     
     public void setSize(int platformSize)
     {
@@ -13,5 +14,15 @@ public class Platform : MonoBehaviour
     public float getSize()
     {
         return size;
+    }
+
+    public void setPoints(int p)
+    {
+        points = p;
+    }
+
+    public int getPoints()
+    {
+        return points;
     }
 }

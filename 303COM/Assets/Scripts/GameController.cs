@@ -27,6 +27,7 @@ public class GameController : MonoBehaviour
     float speedTimer;
     float overheadPlatformTime;
     int score;
+    int points;
 
     //PEM Player Experience Model
     float gameTime;
@@ -55,6 +56,15 @@ public class GameController : MonoBehaviour
         Debug.Log("SIZE SET: "+ startPlatform.GetComponent<Platform>().getSize());
         //add starting platform
         platforms.AddLast(startPlatform);
+        //get difficulty level if PCG mode is off
+        if (!isPCG_On)
+        {
+            difficultyLevel = PlayerPrefs.GetInt(SaveManager.difficultyLevel);
+        }
+        else
+        {
+            difficultyLevel = 1;
+        }
         //add a few platforms to act as a buffer
         createDifficultyPlatform();
         createDifficultyPlatform();
@@ -67,11 +77,7 @@ public class GameController : MonoBehaviour
         previousDistance = 0;
         platformGap = 5;
 
-        //get difficulty level if PCG mode is off
-        if (!isPCG_On)
-        {
-            difficultyLevel = PlayerPrefs.GetInt(SaveManager.difficultyLevel);
-        }
+        
         gameSpeed = 0.01f;
         deathScene.SetActive(false);
     }
@@ -89,48 +95,50 @@ public class GameController : MonoBehaviour
             //calc distance to move
         float distance = UnityStandardAssets.CrossPlatformInput.CrossPlatformInputManager.GetAxis("Horizontal");
         offset = new Vector3((distance/6)+ gameSpeed, 0f, 0f);
-        //normal
-        for (int i = 0; i < platforms.Count; i++) 
+        if (gameSpeed > 0)
         {
-            currentPlatform.Value.transform.position -= offset;
-            float sizeOffset = currentPlatform.Value.GetComponent<Platform>().getSize();
-            isPlatformVisible(currentPlatform, sizeOffset);
-            currentPlatform = currentPlatform.Next;
-        }
-        //overhead
-        if (overheadPlatforms.Count != 0)
-        {
-            currentPlatform = overheadPlatforms.First;
-            for (int i = 0; i < overheadPlatforms.Count; i++)
+            //normal
+            for (int i = 0; i < platforms.Count; i++)
             {
                 currentPlatform.Value.transform.position -= offset;
                 float sizeOffset = currentPlatform.Value.GetComponent<Platform>().getSize();
-                isPlatformVisible(currentPlatform, sizeOffset, true);
+                isPlatformVisible(currentPlatform, sizeOffset);
                 currentPlatform = currentPlatform.Next;
             }
-        }
-        //generate platforms 
-        //normal
-        if (platforms.Count < 5)
-        {
+            //overhead
+            if (overheadPlatforms.Count != 0)
+            {
+                currentPlatform = overheadPlatforms.First;
+                for (int i = 0; i < overheadPlatforms.Count; i++)
+                {
+                    currentPlatform.Value.transform.position -= offset;
+                    float sizeOffset = currentPlatform.Value.GetComponent<Platform>().getSize();
+                    isPlatformVisible(currentPlatform, sizeOffset, true);
+                    currentPlatform = currentPlatform.Next;
+                }
+            }
+            //generate platforms 
+            //normal
+            if (platforms.Count < 5)
+            {
                 //if not PCG mode
-            if (!isPCG_On)
-            {
-                createDifficultyPlatform();
+                if (!isPCG_On)
+                {
+                    createDifficultyPlatform();
+                }
+                else
+                {
+                    CreatePCGPlatform();
+                }
+                platformTime = 0.0f;
             }
-            else
+            //overhead //REMOVED TEMPORILY UNTIL CONSTRAINTS ADDED
+            if (overheadPlatformTime > gameSpeed && overheadPlatforms.Count < 3)
             {
-                CreatePCGPlatform();
+                //createDifficultyPlatform(true);
+                //overheadPlatformTime = 0.0f;
             }
-            platformTime = 0.0f;
         }
-        //overhead //REMOVED TEMPORILY UNTIL CONSTRAINTS ADDED
-        if (overheadPlatformTime > gameSpeed && overheadPlatforms.Count < 3)
-        {
-            //createDifficultyPlatform(true);
-            //overheadPlatformTime = 0.0f;
-        }
-
 
     }
 
@@ -202,15 +210,18 @@ public class GameController : MonoBehaviour
             {
                 platformGap = 7.0f;
                 platformScaler = 1.5f;
+                points = 50;
             }
             else if(platformScaler < 0.5f)
             {
+                points = 150;
                 platformGap = 2.0f;
                 platformScaler = 0.5f;
             }
             else
             {
                 platformGap = 5.0f;
+                points = 100;
             }
             
             
@@ -288,6 +299,7 @@ public class GameController : MonoBehaviour
         Vector3 newPosition = new Vector3(lastPosX-platformGap+(overhead*size),-5+overhead,0);
         GameObject newPlatform = (GameObject) Instantiate(platformType, newPosition, Quaternion.identity);
         newPlatform.GetComponent<Platform>().setSize(size);
+        newPlatform.GetComponent<Platform>().setPoints(points);
         if (overhead > 0)
         {
             overheadPlatforms.AddLast(newPlatform);
@@ -313,16 +325,19 @@ public class GameController : MonoBehaviour
                 platformNumber = 8;
                 newPlatform = largePlatform;
                 platformGap = 5.0f;
+                points = 50;
                 break;
             case 1:
                 platformNumber = 7;
                 newPlatform = mediumPlatform;
                 platformGap = 5.0f;
+                points = 100;
                 break;
             case 2:
                 platformNumber = 6;
                 newPlatform = smallPlatform;
                 platformGap = 2.0f;
+                points = 150;
                 break;
             default:
                 Debug.Log("ERROR");
@@ -356,8 +371,8 @@ public class GameController : MonoBehaviour
                 platforms.Remove(currentPlatform);
                 Debug.Log("DESTROYED NORMAL");
             }
+            score += currentPlatform.Value.GetComponent<Platform>().getPoints();
             Destroy(currentPlatform.Value);
-            score += 100;
             scoreText.GetComponent<Text>().text = ""+score;
             Debug.Log("Destroyed");
         }
@@ -366,15 +381,26 @@ public class GameController : MonoBehaviour
     public void GameOver()
     {
         Time.timeScale = 0;
+        gameSpeed = 0;
         deathScene.SetActive(true);
         if(isPCG_On)
         {
             PlayerPrefs.SetInt(SaveManager.isPCGPlayed, 1);
+            if (PlayerPrefs.GetInt(SaveManager.PCGHighscore) < score)
+            {
+                PlayerPrefs.SetInt(SaveManager.PCGHighscore, score);
+            }
         }
         else
         {
             PlayerPrefs.SetInt(SaveManager.isManualPlayed, 1);
+            if (PlayerPrefs.GetInt(SaveManager.ManualHighscore) < score)
+            {
+                PlayerPrefs.SetInt(SaveManager.ManualHighscore, score);
+            }
         }
+
+        
     }
 
     public void Retry()

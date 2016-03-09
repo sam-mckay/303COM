@@ -1,23 +1,38 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
 
 public class Menu : MonoBehaviour
 {
     public GameObject[] screens;
+    public GameObject optionsMenu;
+    public GameObject surveyScreen;
+    public GameObject a_score;
+    public GameObject b_score;
     int screenCount;
     bool isPCG;
+    bool isOptionsMenuOn;
+
 	// Use this for initialization
 	void Start ()
     {
-        PlayerPrefs.DeleteAll();
+        //PlayerPrefs.DeleteAll();
         screenCount = PlayerPrefs.GetInt(SaveManager.screenCount);
-        //screenCount = 0;
-        foreach(GameObject currentScreen in screens)
+        foreach (GameObject currentScreen in screens)
         {
             currentScreen.SetActive(false);
         }
-        screens[screenCount].SetActive(true);
+        if (PlayerPrefs.GetInt(SaveManager.isPCGPlayed) == 1 && PlayerPrefs.GetInt(SaveManager.isManualPlayed) == 1)
+        {
+            loadScores();
+        }
+        else
+        {
+            screens[screenCount].SetActive(true);
+        }
+        
+        isOptionsMenuOn = false;
     }
 	
 	// Update is called once per frame
@@ -43,7 +58,8 @@ public class Menu : MonoBehaviour
 
     public void SetDifficulty(int difficultyLevel)
     {
-        if(!isPCG)
+        PlayerPrefs.SetInt(SaveManager.screenCount, screenCount-1);
+        if (!isPCG)
         {
             PlayerPrefs.SetInt(SaveManager.difficultyLevel, difficultyLevel);
             SceneManager.LoadScene(1);
@@ -52,5 +68,35 @@ public class Menu : MonoBehaviour
         {
             SceneManager.LoadScene(2);
         }
+    }
+
+    public void OptionsMenu()
+    {
+        isOptionsMenuOn = !isOptionsMenuOn;
+        if(isOptionsMenuOn)
+        {
+            optionsMenu.SetActive(true);
+            screens[screenCount].SetActive(false);
+        }
+        else
+        {
+            optionsMenu.SetActive(false);
+            screens[screenCount].SetActive(true);
+        }
+    }
+
+    void loadScores()
+    {
+        a_score.GetComponent<Text>().text = PlayerPrefs.GetInt(SaveManager.ManualHighscore).ToString();
+        b_score.GetComponent<Text>().text = PlayerPrefs.GetInt(SaveManager.PCGHighscore).ToString();
+        screens[screenCount].SetActive(false);
+        surveyScreen.SetActive(true);
+    }
+
+    public void Survey()
+    {
+        PlayerPrefs.DeleteAll();
+        Application.OpenURL("https://coventry.onlinesurveys.ac.uk/sm303com");
+        Application.Quit();
     }
 }
