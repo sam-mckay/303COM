@@ -91,6 +91,7 @@ public class Menu : MonoBehaviour
         b_score.GetComponent<Text>().text = PlayerPrefs.GetInt(SaveManager.PCGHighscore).ToString();
         screens[screenCount].SetActive(false);
         surveyScreen.SetActive(true);
+        transform.FindChild("ControlsButton").gameObject.SetActive(false);
     }
 
     public void Survey()
@@ -98,5 +99,14 @@ public class Menu : MonoBehaviour
         PlayerPrefs.DeleteAll();
         Application.OpenURL("https://coventry.onlinesurveys.ac.uk/sm303com");
         Application.Quit();
+    }
+
+    public void Retry(bool type)
+    {
+        PlayerPrefs.SetInt(SaveManager.screenCount, 2);
+        transform.FindChild("ControlsButton").gameObject.SetActive(true);
+        surveyScreen.SetActive(false);
+        SetGameType(type);
+        Continue();
     }
 }
